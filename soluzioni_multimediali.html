@@ -40,7 +40,7 @@
         .height-line {
             position: absolute;
             top: 0;
-            left: -20px; /* Position to the left of the human figure */
+            left: -20px; /* Position closer to the left of the human figure */
             width: 1px; /* Vertical line */
             height: 150px; /* Span the height of the human figure */
             background-color: #64748b; /* slate-600 */
@@ -49,7 +49,7 @@
             content: '180cm';
             position: absolute;
             top: 5;
-            right: -40px; /* Position text to the right of the line */
+            left: -40px; /* Position text to the left of the line */
             font-size: 0.75rem; /* text-xs */
             color: #64748b; /* slate-600 */
             transform: translateY(-50%); /* Center text vertically on the line */
@@ -59,7 +59,7 @@
             display: flex;
             flex-direction: row;
             align-items: flex-start; /* Align items to the top */
-            gap: 20px; /* Space between sections */
+            gap: 50px; /* Re-increased space between sections to prevent overlap */
             padding: 1rem;
             background-color: #fff;
             border-radius: 0.5rem;
@@ -67,13 +67,14 @@
             border: 1px solid #e2e8f0;
         }
         .product-info {
-            flex-grow: 1; /* Allow info section to take available space */
+            /* Removed flex-grow: 1 to allow visuals wrapper to expand */
             flex-shrink: 1;
         }
         .product-visuals-wrapper {
             display: flex;
             align-items: flex-start; /* Align human and monitor to the top */
-            flex-shrink: 0;
+            flex-grow: 1; /* Allow visuals wrapper to take available space */
+            /* Removed justify-content: flex-end to align visuals to the left */
             /* min-height removed to optimize space */
         }
         .product-rectangle {
@@ -107,7 +108,7 @@
             </div>
         </header>
 
-        <main id="multimedia-solutions-list" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <main id="multimedia-solutions-list" class="grid grid-cols-1 gap-6">
             <!-- Multimedia solutions will be injected here by JS -->
         </main>
 
@@ -119,7 +120,8 @@
             '22" Interattivo': { widthCm: 48.7, heightCm: 27.4 },
             '32" Non-interattivo': { widthCm: 70.8, heightCm: 39.8 },
             '40" Non-interattivo': { widthCm: 88.6, heightCm: 49.8 },
-            '55" Videowall': { widthCm: 121.0, heightCm: 68.0 }
+            '55" Videowall': { widthCm: 121.0, heightCm: 68.0 },
+            '6m 32:9': { widthCm: 600.0, heightCm: 100.0 }
         };
 
         // Function to convert cm to inches
@@ -147,7 +149,8 @@
             '22" Interattivo': 120,
             '32" Non-interattivo': 100,
             '40" Non-interattivo': 150,
-            '55" Videowall': 250
+            '55" Videowall': 250,
+            '6m 32:9': 400
         };
 
         function renderMultimediaSolutions() {
@@ -187,7 +190,7 @@
                             <div class="human-figure" style="background-image: ${HUMAN_IMAGE_PATH};">
                                 <div class="height-line"></div>
                             </div>
-                            <div class="product-rectangle" style="width: ${displayWidth}px; height: ${displayHeight}px; margin-left: 20px; margin-top: 0;">
+                            <div class="product-rectangle" style="width: ${displayWidth}px; height: ${displayHeight}px; margin-left: 10px; margin-top: 0;">
                                 <span class="text-gray-400">${Math.round(solution.diagonalInches)}"</span>
                             </div>
                         </div>
