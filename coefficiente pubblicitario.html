@@ -1,0 +1,646 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gestionale Retail Media Network</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f8fafc;
+        }
+        .view {
+            display: none;
+        }
+        .view.active {
+            display: block;
+        }
+        .star-rating .fa-star {
+            color: #e2e8f0; /* gray-200 */
+        }
+        .star-rating .fa-star.active {
+            color: #f59e0b; /* amber-500 */
+        }
+        .map-grid {
+            display: grid;
+            grid-template-columns: repeat(12, 1fr);
+            grid-template-rows: repeat(8, 40px);
+            gap: 4px;
+        }
+        .map-area {
+            background-color: #f1f5f9;
+            border-radius: 4px;
+            font-size: 10px;
+            color: #64748b;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+        }
+        .monitor-icon {
+            position: absolute;
+            transform: translate(-50%, -50%);
+            font-size: 24px;
+            color: #ef4444;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+        .monitor-icon:hover {
+            transform: translate(-50%, -50%) scale(1.2);
+        }
+        .calculator-slider {
+            -webkit-appearance: none;
+            width: 100%;
+            height: 8px;
+            background: #e2e8f0;
+            outline: none;
+            opacity: 0.7;
+            transition: opacity .2s;
+            border-radius: 9999px;
+        }
+        .calculator-slider:hover {
+            opacity: 1;
+        }
+        .calculator-slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 20px;
+            height: 20px;
+            background: #3b82f6;
+            cursor: pointer;
+            border-radius: 50%;
+        }
+        #add-monitor-form {
+            transition: all 0.3s ease-in-out;
+        }
+    </style>
+</head>
+<body class="bg-gray-50 text-gray-800">
+
+    <!-- Main Container -->
+    <div class="container mx-auto p-4 md:p-6">
+
+        <!-- Header -->
+        <header class="flex justify-between items-center mb-6 pb-4 border-b">
+            <div>
+                <h1 class="text-2xl font-bold text-gray-900">Dashboard Punti Vendita</h1>
+                <p class="text-sm text-gray-500">Panoramica della rete e performance</p>
+            </div>
+            <div id="breadcrumb" class="text-sm text-gray-500">
+                <a href="#" onclick="showView('main-view')" class="hover:text-blue-600">Home</a>
+            </div>
+        </header>
+
+        <!-- Main View: List of Stores -->
+        <main id="main-view" class="view active">
+            <div id="cooperative-list" class="space-y-8">
+                <!-- Cooperative data will be injected here by JS -->
+            </div>
+        </main>
+
+        <!-- Store Detail View -->
+        <section id="store-detail-view" class="view">
+            <!-- Store detail content will be injected here by JS -->
+        </section>
+
+        <!-- Score Calculator View -->
+        <section id="score-calculator-view" class="view">
+            <!-- Score calculator content will be injected here by JS -->
+        </section>
+
+        <!-- Social Stats View -->
+        <section id="social-stats-view" class="view">
+            <!-- Social stats content will be injected here by JS -->
+        </section>
+
+    </div>
+
+    <script>
+        // Helper function to escape double quotes in HTML attributes
+        function escapeHtmlAttribute(s) {
+            return s.replace(/"/g, '"');
+        }
+
+        // --- DATA & CONFIG ---
+        const PIM_POSITIONS = {
+            'Casse': 1.5,
+            'Banco Gastronomia': 1.5,
+            'Testata Corsia': 1.0,
+            'Corsia Principale': 1.0,
+            'Ingresso': 0.7
+        };
+
+        const PIM_TYPES = {
+            '22" Non-interattivo': 80,
+            '22" Interattivo': 120,
+            '32" Non-interattivo': 100,
+            '40" Non-interattivo': 150,
+            '55" Videowall': 250
+        };
+
+        const PIM_TYPES_DIMENSIONS = {
+            '22" Non-interattivo': { widthCm: 48.7, heightCm: 27.4 },
+            '22" Interattivo': { widthCm: 48.7, heightCm: 27.4 },
+            '32" Non-interattivo': { widthCm: 70.8, heightCm: 39.8 },
+            '40" Non-interattivo': { widthCm: 88.6, heightCm: 49.8 },
+            '55" Videowall': { widthCm: 121.0, heightCm: 68.0 }
+        };
+
+        let mockData = {
+            cooperatives: [
+                {
+                    name: "Cooperativa CNO",
+                    stores: [
+                        {
+                            id: 1,
+                            ragioneSociale: "Supermercati Futura S.p.A.",
+                            indirizzo: "Via Roma 1, 30100 Venezia (VE)",
+                            tipo: "Ipermercato",
+                            ivp: {
+                                fattori: [
+                                    { nome: "Numero Scontrini", peso: 40, punteggioNorm: 80 },
+                                    { nome: "Valore Medio Transazione", peso: 35, punteggioNorm: 90 },
+                                    { nome: "Densità Demografica Target", peso: 25, punteggioNorm: 88 },
+                                ]
+                            },
+                            pim: {
+                                schermi: [
+                                    { id: 'S001', posizione: 'Casse', tipo: '22" Interattivo', mapPos: { top: '85%', left: '70%' } },
+                                    { id: 'S002', posizione: 'Casse', tipo: '22" Interattivo', mapPos: { top: '85%', left: '80%' } },
+                                    { id: 'S003', posizione: 'Testata Corsia', tipo: '32" Non-interattivo', mapPos: { top: '50%', left: '45%' } },
+                                    { id: 'S004', posizione: 'Ingresso', tipo: '40" Non-interattivo', mapPos: { top: '15%', left: '10%' } },
+                                    { id: 'S005', posizione: 'Banco Gastronomia', tipo: '22" Non-interattivo', mapPos: { top: '30%', left: '85%' } },
+                                ]
+                            },
+                            social: {
+                                statistiche: [
+                                    { nome: "Follower Instagram", peso: 20, valore: 5000, punteggioNorm: 70 },
+                                    { nome: "Visualizzazioni Instagram", peso: 20, valore: 15000, punteggioNorm: 65 },
+                                    { nome: "Follower Facebook", peso: 20, valore: 8000, punteggioNorm: 75 },
+                                    { nome: "Visualizzazioni Facebook", peso: 20, valore: 20000, punteggioNorm: 80 },
+                                    { nome: "Engagement Rate Facebook", peso: 20, valore: 0.03, punteggioNorm: 85 },
+                                ]
+                            }
+                        },
+                        {
+                            id: 2,
+                            ragioneSociale: "Market Convenienza S.r.l.",
+                            indirizzo: "Corso del Popolo 50, 35100 Padova (PD)",
+                            tipo: "Supermercato di Prossimità",
+                            ivp: {
+                                fattori: [
+                                    { nome: "Numero Scontrini", peso: 40, punteggioNorm: 80 },
+                                    { nome: "Valore Medio Transazione", peso: 35, punteggioNorm: 70 },
+                                    { nome: "Densità Demografica Target", peso: 25, punteggioNorm: 75 },
+                                ]
+                            },
+                            pim: {
+                                schermi: [
+                                    { id: 'S006', posizione: 'Casse', tipo: '22" Non-interattivo', mapPos: { top: '85%', left: '75%' } },
+                                    { id: 'S007', posizione: 'Ingresso', tipo: '32" Non-interattivo', mapPos: { top: '15%', left: '15%' } },
+                                ]
+                            },
+                            social: {
+                                statistiche: [
+                                    { nome: "Follower Instagram", peso: 20, valore: 1200, punteggioNorm: 50 },
+                                    { nome: "Visualizzazioni Instagram", peso: 20, valore: 5000, punteggioNorm: 45 },
+                                    { nome: "Follower Facebook", peso: 20, valore: 2000, punteggioNorm: 55 },
+                                    { nome: "Visualizzazioni Facebook", peso: 20, valore: 7000, punteggioNorm: 50 },
+                                    { nome: "Engagement Rate Facebook", peso: 20, valore: 0.02, punteggioNorm: 60 },
+                                ]
+                            }
+                        }
+                    ]
+                },
+                {
+                    name: "Cooperativa Centro",
+                    stores: [
+                        {
+                            id: 3,
+                            ragioneSociale: "La Spesa Giusta S.p.A.",
+                            indirizzo: "Viale Europa 120, 00144 Roma (RM)",
+                            tipo: "Superstore",
+                            ivp: {
+                                fattori: [
+                                    { nome: "Numero Scontrini", peso: 40, punteggioNorm: 80 },
+                                    { nome: "Valore Medio Transazione", peso: 35, punteggioNorm: 90 },
+                                    { nome: "Densità Demografica Target", peso: 25, punteggioNorm: 90 },
+                                ]
+                            },
+                            pim: {
+                                schermi: [
+                                    { id: 'S008', posizione: 'Casse', tipo: '40" Non-interattivo', mapPos: { top: '85%', left: '20%' } },
+                                    { id: 'S009', posizione: 'Casse', tipo: '40" Non-interattivo', mapPos: { top: '85%', left: '30%' } },
+                                    { id: 'S010', posizione: 'Ingresso', tipo: '55" Videowall', mapPos: { top: '15%', left: '50%' } },
+                                    { id: 'S011', posizione: 'Testata Corsia', tipo: '32" Non-interattivo', mapPos: { top: '50%', left: '60%' } }
+                                ]
+                            },
+                            social: {
+                                statistiche: [
+                                    { nome: "Follower Instagram", peso: 20, valore: 8000, punteggioNorm: 90 },
+                                    { nome: "Visualizzazioni Instagram", peso: 20, valore: 30000, punteggioNorm: 85 },
+                                    { nome: "Follower Facebook", peso: 20, valore: 15000, punteggioNorm: 90 },
+                                    { nome: "Visualizzazioni Facebook", peso: 20, valore: 40000, punteggioNorm: 92 },
+                                    { nome: "Engagement Rate Facebook", peso: 20, valore: 0.05, punteggioNorm: 95 },
+                                ]
+                            }
+                        },
+                        {
+                            id: 4,
+                            ragioneSociale: "Alimentari del Borgo S.n.c.",
+                            indirizzo: "Via Cavour 22, 50122 Firenze (FI)",
+                            tipo: "Negozio di Quartiere",
+                            ivp: {
+                                fattori: [
+                                    { nome: "Numero Scontrini", peso: 40, punteggioNorm: 80 },
+                                    { nome: "Valore Medio Transazione", peso: 35, punteggioNorm: 80 },
+                                    { nome: "Densità Demografica Target", peso: 25, punteggioNorm: 80 },
+                                ]
+                            },
+                            pim: {
+                                schermi: [
+                                    { id: 'S012', posizione: 'Casse', tipo: '22" Interattivo', mapPos: { top: '85%', left: '50%' } },
+                                    { id: 'S013', posizione: 'Ingresso', tipo: '32" Non-interattivo', mapPos: { top: '15%', left: '50%' } }
+                                ]
+                            },
+                            social: {
+                                statistiche: [
+                                    { nome: "Follower Instagram", peso: 20, valore: 800, punteggioNorm: 40 },
+                                    { nome: "Visualizzazioni Instagram", peso: 20, valore: 2000, punteggioNorm: 35 },
+                                    { nome: "Follower Facebook", peso: 20, valore: 1000, punteggioNorm: 25 },
+                                    { nome: "Visualizzazioni Facebook", peso: 20, valore: 3000, punteggioNorm: 20 },
+                                    { nome: "Engagement Rate Facebook", peso: 20, valore: 0.01, punteggioNorm: 30 },
+                                ]
+                            }
+                        }
+                    ]
+                }
+            ]
+        };
+
+        // --- CORE LOGIC ---
+        function calculateAllScores() {
+            mockData.cooperatives.forEach(coop => {
+                coop.stores.forEach(store => {
+                    if (store.ivp && store.ivp.fattori && store.pim && store.pim.schermi && store.social && store.social.statistiche) {
+                        updateStoreScores(store);
+                    }
+                });
+            });
+        }
+
+        function updateStoreScores(store) {
+            // Calculate IVP
+            store.ivp.punteggio = store.ivp.fattori.reduce((acc, f) => acc + (f.punteggioNorm * (f.peso / 100)), 0);
+
+            // Calculate PIM
+            store.pim.punteggio = store.pim.schermi.reduce((acc, s) => {
+                const punteggioBase = PIM_TYPES[s.tipo] || 0;
+                const moltiplicatore = PIM_POSITIONS[s.posizione] || 1;
+                // console.log(`  Screen ID: ${s.id}, Posizione: ${s.posizione}, Tipo: ${s.tipo}, Punteggio Base: ${punteggioBase}, Moltiplicatore: ${moltiplicatore}, Punteggio Parziale: ${punteggioBase * moltiplicatore}`);
+                return acc + (punteggioBase * moltiplicatore);
+            }, 0);
+            // console.log(`PIM Punteggio Totale: ${store.pim.punteggio}`);
+
+            // Calculate Social Score
+            store.social.punteggio = store.social.statistiche.reduce((acc, s) => acc + (s.punteggioNorm * (s.peso / 100)), 0);
+
+            // If PIM score is 0, the total advertising value is 0.
+            if (store.pim.punteggio === 0) {
+                store.punteggio = 0;
+            } else {
+                // Calculate PVC and final score only if there are monitors
+                const pesoIVP = 50, pesoPIM = 50;
+                const pimNormalizzato = Math.min((store.pim.punteggio / 1000) * 100, 100);
+                const pvc = (store.ivp.punteggio * (pesoIVP / 100)) + (pimNormalizzato * (pesoPIM / 100));
+                store.punteggio = pvc / 10;
+            }
+        }
+
+        // --- UTILITY FUNCTIONS ---
+        function getStoreById(id) {
+            for (const coop of mockData.cooperatives) {
+                const store = coop.stores.find(s => s.id === id);
+                if (store) return store;
+            }
+            return null;
+        }
+        
+        function generateStars(rating, displayValue = false) {
+            let starsHtml = '';
+            if (displayValue) {
+                // For displaying a single star with a value inside
+                starsHtml = `<div class="relative inline-flex items-center justify-center w-8 h-8 bg-amber-500 rounded-full text-white text-xs font-bold">
+                                ${rating.toFixed(1)}
+                             </div>`;
+            } else {
+                // For displaying multiple stars
+                for (let i = 1; i <= 10; i++) {
+                    starsHtml += `<i class="fa-solid fa-star ${i <= Math.round(rating) ? 'active' : ''}"></i>`;
+                }
+            }
+            return starsHtml;
+        }
+
+        // --- EVENT HANDLERS ---
+        function handleIvpChange(storeId, factorIndex, newValue) {
+            const store = getStoreById(storeId);
+            store.ivp.fattori[factorIndex].punteggioNorm = parseInt(newValue, 10);
+            updateStoreScores(store);
+            renderScoreCalculatorView(store);
+        }
+        
+        function handlePimDelete(storeId, screenId) {
+            const store = getStoreById(storeId);
+            store.pim.schermi = store.pim.schermi.filter(s => s.id !== screenId);
+            updateStoreScores(store);
+            renderScoreCalculatorView(store);
+        }
+        
+        function handlePimEdit(storeId, screenId, property, value) {
+            console.log(`handlePimEdit: storeId=${storeId}, screenId=${screenId}, property=${property}, value=${value}`);
+            const store = getStoreById(storeId);
+            // Create a new array with the updated screen
+            store.pim.schermi = store.pim.schermi.map(screen => {
+                if (screen.id === screenId) {
+                    // If the property being changed is 'tipo', convert the index back to the full type string
+                    if (property === 'tipo') {
+                        const selectedType = Object.keys(PIM_TYPES)[parseInt(value, 10)];
+                        return { ...screen, [property]: selectedType };
+                    }
+                    return { ...screen, [property]: value };
+                }
+                // Return the original object for all other screens
+                return screen;
+            });
+            // Recalculate all scores based on the new data
+            updateStoreScores(store);
+            // Re-render the view with the new data
+            renderScoreCalculatorView(store);
+        }
+
+        function handlePimAdd(storeId) {
+            const store = getStoreById(storeId);
+            const newId = 'S' + Date.now().toString().slice(-4);
+            const newPos = document.getElementById('new-monitor-position').value;
+            const newTypeIndex = document.getElementById('new-monitor-type').value;
+            const newType = Object.keys(PIM_TYPES)[parseInt(newTypeIndex, 10)];
+
+            store.pim.schermi.push({
+                id: newId,
+                posizione: newPos,
+                tipo: newType,
+                mapPos: { top: `${Math.random() * 80 + 10}%`, left: `${Math.random() * 80 + 10}%` }
+            });
+            
+            updateStoreScores(store);
+            renderScoreCalculatorView(store);
+        }
+
+        function handleSocialChange(storeId, metricIndex, newValue) {
+            const store = getStoreById(storeId);
+            store.social.statistiche[metricIndex].punteggioNorm = parseInt(newValue, 10);
+            updateStoreScores(store);
+            renderSocialStatsView(store);
+        }
+
+
+        // --- VIEW RENDERING FUNCTIONS ---
+        function showView(viewId, storeId = null) {
+            document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+            document.getElementById(viewId).classList.add('active');
+
+            const breadcrumb = document.getElementById('breadcrumb');
+            
+            document.getElementById('store-detail-view').innerHTML = '';
+            document.getElementById('score-calculator-view').innerHTML = '';
+
+            if (viewId === 'main-view') {
+                breadcrumb.innerHTML = `<a href="#" onclick="showView('main-view')" class="hover:text-blue-600">Home</a>`;
+                renderMainView();
+            } else if (viewId === 'store-detail-view' && storeId) {
+                const store = getStoreById(storeId);
+                renderStoreDetailView(store);
+                breadcrumb.innerHTML = `<a href="#" onclick="showView('main-view')" class="hover:text-blue-600">Home</a> <span class="mx-2">/</span> <span>${store.ragioneSociale}</span>`;
+            } else if (viewId === 'score-calculator-view' && storeId) {
+                const store = getStoreById(storeId);
+                renderScoreCalculatorView(store);
+                 breadcrumb.innerHTML = `<a href="#" onclick="showView('main-view')" class="hover:text-blue-600">Home</a> <span class="mx-2">/</span> <a href="#" onclick="showView('store-detail-view', ${store.id})" class="hover:text-blue-600">${store.ragioneSociale}</a><span class="mx-2">/</span><span>Calcolo Punteggio</span>`;
+            } else if (viewId === 'social-stats-view' && storeId) {
+                const store = getStoreById(storeId);
+                renderSocialStatsView(store);
+                breadcrumb.innerHTML = `<a href="#" onclick="showView('main-view')" class="hover:text-blue-600">Home</a> <span class="mx-2">/</span> <a href="#" onclick="showView('store-detail-view', ${store.id})" class="hover:text-blue-600">${store.ragioneSociale}</a><span class="mx-2">/</span><span>Statistiche Social</span>`;
+            }
+        }
+
+        function renderMainView() {
+            const listContainer = document.getElementById('cooperative-list');
+            listContainer.innerHTML = mockData.cooperatives.map(coop => `
+                <div class="bg-white shadow-sm rounded-lg">
+                    <h2 class="text-xl font-bold p-4 border-b flex justify-between items-center">
+                        <span>${coop.name}</span>
+                        <span class="text-sm font-normal text-gray-500 flex items-center space-x-2">
+                            <span>Valore Medio:</span>
+                            ${(() => {
+                                let totalCoopScore = 0;
+                                let totalCoopStores = 0;
+                                coop.stores.forEach(store => {
+                                    totalCoopScore += store.punteggio || 0;
+                                    totalCoopStores++;
+                                });
+                                const avgCoopCoefficient = totalCoopStores > 0 ? totalCoopScore / totalCoopStores : 0;
+                                return generateStars(avgCoopCoefficient, true);
+                            })()}
+                        </span>
+                    </h2>
+                    <div class="divide-y divide-gray-200">
+                        <div class="grid grid-cols-1 md:grid-cols-5 gap-4 p-4 bg-gray-100 font-semibold text-gray-700">
+                            <div>Ragione Sociale / Indirizzo</div>
+                            <div>Canale</div>
+                            <div>Coefficiente Pubblicitario Offline</div>
+                            <div>Coefficiente Pubblicitario Online</div>
+                            <div class="text-right"></div>
+                        </div>
+                        ${coop.stores.map(store => `
+                            <div class="grid grid-cols-1 md:grid-cols-5 gap-4 p-4 items-center hover:bg-gray-50 cursor-pointer" onclick="showView('store-detail-view', ${store.id})">
+                                <div><p class="font-semibold text-gray-900">${store.ragioneSociale}</p><p class="text-sm text-gray-500">${store.indirizzo}</p></div>
+                                <div class="text-sm text-gray-600">${store.tipo}</div>
+                                <div class="flex items-center space-x-2">
+                                    <div class="star-rating text-lg" onclick="event.stopPropagation(); showView('score-calculator-view', ${store.id})">${generateStars(store.punteggio || 0)}</div>
+                                    <span class="font-bold text-lg text-gray-800">${(store.punteggio || 0).toFixed(1)}</span>
+                                </div>
+                                <div class="flex items-center space-x-2">
+                                    <div class="star-rating text-lg" onclick="event.stopPropagation(); showView('social-stats-view', ${store.id})">${generateStars(store.social.punteggio / 10 || 0)}</div>
+                                    <span class="font-bold text-lg text-gray-800">${(store.social.punteggio / 10 || 0).toFixed(1)}</span>
+                                </div>
+                                <div class="text-right"><button class="text-sm text-blue-600 hover:text-blue-800 font-semibold">Vedi Dettagli <i class="fa-solid fa-arrow-right ml-1"></i></button></div>
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function renderStoreDetailView(store) {
+            const container = document.getElementById('store-detail-view');
+            const pimPunteggio = store.pim.schermi.reduce((acc, s) => acc + ((PIM_TYPES[s.tipo] || 0) * (PIM_POSITIONS[s.posizione] || 1)), 0);
+            container.innerHTML = `
+                <div class="bg-white p-6 rounded-lg shadow-md">
+                    <div class="flex justify-between items-start mb-6">
+                        <div>
+                            <h2 class="text-3xl font-bold">${store.ragioneSociale}</h2>
+                            <p class="text-gray-500">${store.indirizzo}</p>
+                            <p class="mt-1 text-sm bg-blue-100 text-blue-800 font-medium inline-block px-2 py-1 rounded">${store.tipo}</p>
+                        </div>
+                        <div class="text-right">
+                            <p class="text-sm text-gray-500">Coefficiente Pubblicitario Offline</p>
+                            <div class="flex items-center space-x-2 mt-1 cursor-pointer" onclick="showView('score-calculator-view', ${store.id})">
+                                <div class="star-rating text-2xl">${generateStars(store.punteggio)}</div>
+                                <span class="font-black text-3xl text-gray-800">${store.punteggio.toFixed(1)}</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                        <div>
+                            <h3 class="text-xl font-semibold mb-4">Mappa Schermi Installati</h3>
+                            <div class="bg-white p-4 border rounded-lg relative map-grid">
+                                <div class="col-span-12 row-span-1 map-area">INGRESSO</div><div class="col-span-4 row-span-6 map-area">ORTOFRUTTA</div><div class="col-span-4 row-span-6 map-area">CORSIE</div><div class="col-span-4 row-span-3 map-area">GASTRONOMIA / FORNO</div><div class="col-span-4 row-span-3 map-area">SURGELATI</div><div class="col-span-12 row-span-1 map-area">CASSE</div>
+                                ${store.pim.schermi.map(s => `<div class="monitor-icon" style="top: ${s.mapPos.top}; left: ${s.mapPos.left};" title="${s.posizione} (${s.tipo})"><i class="fa-solid fa-tv"></i></div>`).join('')}
+                            </div>
+                        </div>
+                        <div>
+                            <h3 class="text-xl font-semibold mb-4">Riepilogo Infrastruttura (PIM: ${pimPunteggio.toFixed(0)})</h3>
+                            <div class="overflow-x-auto"><table class="min-w-full bg-white border rounded-lg"><thead class="bg-gray-50"><tr><th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ID</th><th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Posizione</th><th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Dimensione/Tipo</th></tr></thead><tbody class="divide-y divide-gray-200">${store.pim.schermi.map(s => `<tr><td class="px-4 py-3 text-sm font-medium text-gray-800">${s.id}</td><td class="px-4 py-3 text-sm text-gray-600">${s.posizione}</td><td class="px-4 py-3 text-sm text-gray-600">${s.tipo}</td></tr>`).join('')}</tbody></table></div>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+        
+        function renderScoreCalculatorView(store) {
+            const container = document.getElementById('score-calculator-view');
+            if (!store.ivp || !store.ivp.fattori) return; // Safety check
+
+            const pimNormalizzato = Math.min((store.pim.punteggio / 1000) * 100, 100); 
+            const pvc = store.punteggio > 0 ? (store.ivp.punteggio * 0.5) + (pimNormalizzato * 0.5) : 0;
+
+            container.innerHTML = `
+                <div class="bg-white p-6 rounded-lg shadow-md">
+                    <h2 class="text-3xl font-bold mb-2">Calcolo Punteggio: ${store.ragioneSociale}</h2>
+                    <p class="text-gray-500 mb-6">Modifichi i parametri per vedere l'impatto sul punteggio finale in tempo reale.</p>
+                    <div class="bg-blue-50 border border-blue-200 p-6 rounded-lg mb-8 text-center">
+                        <p class="text-sm text-blue-700 font-semibold uppercase">Punteggio Finale (su 10)</p>
+                        <p class="text-6xl font-black text-blue-900">${(store.punteggio || 0).toFixed(1)}</p>
+                        <p class="text-gray-600 mt-2">Corrisponde a un Punteggio di Valore Cooperativa (PVC) di <strong>${pvc.toFixed(1)}</strong> su 100</p>
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                        <div class="bg-gray-50 p-6 rounded-lg border">
+                            <h3 class="text-xl font-bold mb-1">Pilastro I: Indice Valore Punto Vendita (IVP)</h3>
+                            <p class="text-sm text-gray-500 mb-4">Valuta il potenziale commerciale della location.</p>
+                            <div class="text-center mb-6"><p class="text-4xl font-bold">${(store.ivp.punteggio || 0).toFixed(1)} <span class="text-xl text-gray-500">/ 100</span></p></div>
+                            <div class="space-y-4">
+                                ${store.ivp.fattori.map((f, index) => `
+                                    <div>
+                                        <div class="flex justify-between text-sm mb-1"><span class="font-medium">${f.nome}</span><span class="text-gray-500">Peso: ${f.peso}%</span></div>
+                                        <input type="range" min="0" max="100" value="${f.punteggioNorm}" class="calculator-slider" oninput="handleIvpChange(${store.id}, ${index}, this.value)">
+                                        <div class="flex justify-between text-xs mt-1"><span class="text-gray-500">Punteggio: ${f.punteggioNorm}/100</span><span class="font-semibold">Valore: ${(f.punteggioNorm * f.peso / 100).toFixed(1)}</span></div>
+                                    </div>
+                                `).join('')}
+                            </div>
+                        </div>
+                        <div class="bg-gray-50 p-6 rounded-lg border">
+                            <h3 class="text-xl font-bold mb-1">Pilastro II: Punteggio Infrastruttura Multimediale (PIM) <a href="soluzioni_multimediali.html" class="ml-2 text-blue-600 hover:text-blue-800 text-sm font-normal"><i class="fa-solid fa-info-circle"></i> Vedi Soluzioni</a></h3>
+                            <p class="text-sm text-gray-500 mb-4">Valuta l'efficacia dell'hardware installato.</p>
+                            <div class="text-center mb-6"><p class="text-4xl font-bold">${(store.pim.punteggio || 0).toFixed(0)} <span class="text-xl text-gray-500">punti</span></p><p class="text-sm text-gray-600">(Normalizzato a ${pimNormalizzato.toFixed(1)}/100 per il calcolo)</p></div>
+                            <div class="space-y-2">
+                                ${store.pim.schermi.map(s => {
+                                    const punteggioBase = PIM_TYPES[s.tipo] || 0;
+                                    const moltiplicatore = PIM_POSITIONS[s.posizione] || 1;
+                                    const punteggioFinale = punteggioBase * moltiplicatore;
+                                    return `<div class="flex items-center text-sm p-2 bg-white rounded border gap-2">
+                                        <div class="flex-grow">
+                                            <select class="w-full text-sm font-medium border-gray-300 rounded-md shadow-sm" onchange="handlePimEdit(${store.id}, '${s.id}', 'posizione', this.value)">
+                                                ${Object.keys(PIM_POSITIONS).map(p => `<option value="${escapeHtmlAttribute(p)}" ${p === s.posizione ? 'selected' : ''}>${p}</option>`).join('')}
+                                            </select>
+                                            <select class="w-full text-xs text-gray-500 border-gray-300 rounded-md shadow-sm mt-1" onchange="handlePimEdit(${store.id}, '${s.id}', 'tipo', this.value)">
+                                                ${Object.keys(PIM_TYPES).map((t, index) => `<option value="${index}" ${t === s.tipo ? 'selected' : ''}>${t}</option>`).join('')}
+                                            </select>
+                                        </div>
+                                        <div class="text-right flex-shrink-0 w-20">
+                                            <p class="font-bold">${punteggioFinale.toFixed(0)}</p>
+                                            <p class="text-xs text-gray-500">${punteggioBase} x ${moltiplicatore}</p>
+                                        </div>
+                                        <button class="text-red-500 hover:text-red-700" onclick="handlePimDelete(${store.id}, '${s.id}')"><i class="fa-solid fa-trash-alt"></i></button>
+                                    </div>`;
+                                }).join('')}
+                            </div>
+                            <div id="add-monitor-form" class="mt-4 pt-4 border-t">
+                                <h4 class="font-semibold text-sm mb-2">Aggiungi Nuovo Monitor</h4>
+                                <div class="grid grid-cols-2 gap-2">
+                                    <select id="new-monitor-position" class="w-full text-sm border-gray-300 rounded-md shadow-sm">${Object.keys(PIM_POSITIONS).map(p => `<option value="${escapeHtmlAttribute(p)}">${p}</option>`).join('')}</select>
+                                    <select id="new-monitor-type" class="w-full text-sm border-gray-300 rounded-md shadow-sm">${Object.keys(PIM_TYPES).map((t, index) => `<option value="${index}">${t}</option>`).join('')}</select>
+                                </div>
+                                <button class="mt-2 w-full bg-blue-600 text-white text-sm font-semibold py-2 rounded-md hover:bg-blue-700" onclick="handlePimAdd(${store.id})">Aggiungi</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        function renderSocialStatsView(store) {
+            const container = document.getElementById('social-stats-view');
+            if (!store.social || !store.social.statistiche) return; // Safety check
+
+            container.innerHTML = `
+                <div class="bg-white p-6 rounded-lg shadow-md">
+                    <h2 class="text-3xl font-bold mb-2">Statistiche Social: ${store.ragioneSociale}</h2>
+                    <p class="text-gray-500 mb-6">Modifichi i parametri per vedere l'impatto sul punteggio social in tempo reale.</p>
+                    <div class="bg-green-50 border border-green-200 p-6 rounded-lg mb-8 text-center">
+                        <p class="text-sm text-green-700 font-semibold uppercase">Punteggio Social (su 100)</p>
+                        <p class="text-6xl font-black text-green-900">${(store.social.punteggio || 0).toFixed(1)}</p>
+                        <p class="text-gray-600 mt-2">Questo punteggio contribuisce al Coefficiente Pubblicitario Online.</p>
+                    </div>
+                    <div class="bg-gray-50 p-6 rounded-lg border">
+                        <h3 class="text-xl font-bold mb-1">Dettaglio Statistiche Social</h3>
+                        <p class="text-sm text-gray-500 mb-4">Valuta la performance del punto vendita sui canali social.</p>
+                        <div class="space-y-4">
+                            ${store.social.statistiche.map((s, index) => `
+                                <div>
+                                    <div class="flex justify-between text-sm mb-1"><span class="font-medium">${s.nome}</span><span class="text-gray-500">Peso: ${s.peso}%</span></div>
+                                    <input type="range" min="0" max="100" value="${s.punteggioNorm}" class="calculator-slider" oninput="handleSocialChange(${store.id}, ${index}, this.value)">
+                                    <div class="flex justify-between text-xs mt-1"><span class="text-gray-500">Punteggio: ${s.punteggioNorm}/100</span><span class="font-semibold">Valore: ${(s.punteggioNorm * s.peso / 100).toFixed(1)}</span></div>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        // --- INITIALIZATION ---
+        function calculateAverageCoefficient() {
+            let totalScore = 0;
+            let totalStores = 0;
+            mockData.cooperatives.forEach(coop => {
+                coop.stores.forEach(store => {
+                    totalScore += store.punteggio || 0;
+                    totalStores++;
+                });
+            });
+            return totalStores > 0 ? totalScore / totalStores : 0;
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            calculateAllScores();
+            showView('main-view');
+        });
+
+    </script>
+</body>
+</html>

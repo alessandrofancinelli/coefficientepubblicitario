@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Soluzioni Multimediali Installate</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f8fafc;
+        }
+        .product-rectangle {
+            border: 1px solid #cbd5e1; /* slate-300 */
+            background-color: #f1f5f9; /* slate-100 */
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            position: relative;
+        }
+        .product-rectangle::after {
+            content: '';
+            display: block;
+            padding-bottom: var(--aspect-ratio); /* Calculated dynamically */
+        }
+        .human-figure {
+            position: relative; /* For positioning the height-line */
+            width: 60px; /* Fixed width for the human figure */
+            height: var(--human-display-height); /* Will be set by JS */
+            background-size: contain;
+            background-repeat: no-repeat;
+            background-position: top center; /* Align image to the top of its container */
+            flex-shrink: 0; /* Prevent shrinking */
+        }
+        .height-line {
+            position: absolute;
+            top: 0;
+            left: -20px; /* Position to the left of the human figure */
+            width: 1px; /* Vertical line */
+            height: 150px; /* Span the height of the human figure */
+            background-color: #64748b; /* slate-600 */
+        }
+        .height-line::before {
+            content: '180cm';
+            position: absolute;
+            top: 5;
+            right: -40px; /* Position text to the right of the line */
+            font-size: 0.75rem; /* text-xs */
+            color: #64748b; /* slate-600 */
+            transform: translateY(-50%); /* Center text vertically on the line */
+            white-space: nowrap;
+        }
+        .product-card {
+            display: flex;
+            flex-direction: row;
+            align-items: flex-start; /* Align items to the top */
+            gap: 20px; /* Space between sections */
+            padding: 1rem;
+            background-color: #fff;
+            border-radius: 0.5rem;
+            box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+            border: 1px solid #e2e8f0;
+        }
+        .product-info {
+            flex-grow: 1; /* Allow info section to take available space */
+            flex-shrink: 1;
+        }
+        .product-visuals-wrapper {
+            display: flex;
+            align-items: flex-start; /* Align human and monitor to the top */
+            flex-shrink: 0;
+            /* min-height removed to optimize space */
+        }
+        .product-rectangle {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            border: 1px solid #cbd5e1; /* slate-300 */
+            background-color: #f1f5f9; /* slate-100 */
+            flex-shrink: 0; /* Prevent shrinking */
+        }
+        .product-rectangle span {
+            font-size: 0.875rem; /* text-sm, slightly larger for readability */
+            white-space: nowrap; /* Prevent text from wrapping */
+        }
+    </style>
+</head>
+<body class="bg-gray-50 text-gray-800">
+
+    <!-- Main Container -->
+    <div class="container mx-auto p-4 md:p-6">
+
+        <!-- Header -->
+        <header class="flex justify-between items-center mb-6 pb-4 border-b">
+            <div>
+                <h1 class="text-2xl font-bold text-gray-900">Soluzioni Multimediali Installate</h1>
+                <p class="text-sm text-gray-500">Elenco di tutte le soluzioni multimediali mai installate, ordinate per dimensione.</p>
+            </div>
+            <div id="breadcrumb" class="text-sm text-gray-500">
+                <a href="coefficiente pubblicitario.html" class="hover:text-blue-600">Home</a> <span class="mx-2">/</span> <span>Soluzioni Multimediali</span>
+            </div>
+        </header>
+
+        <main id="multimedia-solutions-list" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <!-- Multimedia solutions will be injected here by JS -->
+        </main>
+
+    </div>
+
+    <script>
+        const PIM_TYPES_DIMENSIONS = {
+            '22" Non-interattivo': { widthCm: 48.7, heightCm: 27.4 },
+            '22" Interattivo': { widthCm: 48.7, heightCm: 27.4 },
+            '32" Non-interattivo': { widthCm: 70.8, heightCm: 39.8 },
+            '40" Non-interattivo': { widthCm: 88.6, heightCm: 49.8 },
+            '55" Videowall': { widthCm: 121.0, heightCm: 68.0 }
+        };
+
+        // Function to convert cm to inches
+        function cmToInches(cm) {
+            return cm / 2.54;
+        }
+
+        // Function to calculate diagonal from width and height
+        function calculateDiagonal(widthCm, heightCm) {
+            const widthInches = cmToInches(widthCm);
+            const heightInches = cmToInches(heightCm);
+            return Math.sqrt(Math.pow(widthInches, 2) + Math.pow(heightInches, 2));
+        }
+
+        const HUMAN_HEIGHT_CM = 180; // Human height in cm
+        const HUMAN_DISPLAY_HEIGHT_PX = 180; // Desired display height for human figure in pixels
+        const SCALE_FACTOR = HUMAN_DISPLAY_HEIGHT_PX / HUMAN_HEIGHT_CM; // Pixels per cm
+
+        // Path to the human silhouette image
+        const HUMAN_IMAGE_PATH = `url('assets/images/human_silhouette.png')`;
+
+        // PIM_TYPES values from coefficiente pubblicitario.html for multimedia value
+        const PIM_TYPES_VALUES = {
+            '22" Non-interattivo': 80,
+            '22" Interattivo': 120,
+            '32" Non-interattivo': 100,
+            '40" Non-interattivo': 150,
+            '55" Videowall': 250
+        };
+
+        function renderMultimediaSolutions() {
+            const container = document.getElementById('multimedia-solutions-list');
+            let allSolutions = [];
+
+            // Extract unique PIM types and their dimensions
+            for (const type in PIM_TYPES_DIMENSIONS) {
+                const dimensions = PIM_TYPES_DIMENSIONS[type];
+                const diagonalInches = calculateDiagonal(dimensions.widthCm, dimensions.heightCm);
+                allSolutions.push({
+                    name: type,
+                    widthCm: dimensions.widthCm,
+                    heightCm: dimensions.heightCm,
+                    diagonalInches: diagonalInches
+                });
+            }
+
+            // Sort by diagonal size (smallest to largest)
+            allSolutions.sort((a, b) => a.diagonalInches - b.diagonalInches);
+
+            container.innerHTML = allSolutions.map(solution => {
+                const displayWidth = solution.widthCm * SCALE_FACTOR;
+                const displayHeight = solution.heightCm * SCALE_FACTOR;
+                const multimediaValue = PIM_TYPES_VALUES[solution.name] || 0;
+
+                return `
+                    <div class="product-card" style="--human-display-height: ${HUMAN_DISPLAY_HEIGHT_PX}px;">
+                        <div class="product-info">
+                            <h3 class="text-lg font-semibold text-gray-900 mb-2">${solution.name}</h3>
+                            <p class="text-sm text-gray-600">Larghezza: ${solution.widthCm.toFixed(1)} cm</p>
+                            <p class="text-sm text-gray-600">Altezza: ${solution.heightCm.toFixed(1)} cm</p>
+                            <p class="text-sm text-gray-600">Diagonale: ${Math.round(solution.diagonalInches)}"</p>
+                            <p class="text-sm text-gray-600 font-semibold mt-2">Valore Multimediale: ${multimediaValue} punti</p>
+                        </div>
+                        <div class="product-visuals-wrapper">
+                            <div class="human-figure" style="background-image: ${HUMAN_IMAGE_PATH};">
+                                <div class="height-line"></div>
+                            </div>
+                            <div class="product-rectangle" style="width: ${displayWidth}px; height: ${displayHeight}px; margin-left: 20px; margin-top: 0;">
+                                <span class="text-gray-400">${Math.round(solution.diagonalInches)}"</span>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        document.addEventListener('DOMContentLoaded', renderMultimediaSolutions);
+    </script>
+</body>
+</html>
